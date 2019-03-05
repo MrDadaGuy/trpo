@@ -36,7 +36,8 @@ from datetime import datetime
 import os
 import argparse
 import signal
-
+import roboschool
+from gym.envs.robotics import *
 
 class GracefulKiller:
     """ Gracefully exit program on CTRL-C """
@@ -63,7 +64,11 @@ def init_gym(env_name):
         number of action dimensions (int)
     """
     env = gym.make(env_name)
-    obs_dim = env.observation_space.shape[0]
+    if env.observation_space.shape == None:     # for OpenAI Gym Robotics
+        obs_dim = env.observation_space.spaces["observation"].shape[0]
+    else:
+        obs_dim = env.observation_space.shape[0]
+
     act_dim = env.action_space.shape[0]
 
     return env, obs_dim, act_dim
@@ -86,6 +91,7 @@ def run_episode(env, policy, scaler, animate=False):
         unscaled_obs: useful for training scaler, shape = (episode len, obs_dim)
     """
     obs = env.reset()
+ 
     observes, actions, rewards, unscaled_obs = [], [], [], []
     done = False
     step = 0.0
@@ -95,6 +101,8 @@ def run_episode(env, policy, scaler, animate=False):
     while not done:
         if animate:
             env.render()
+        if type(obs) == dict:       # added to accommodate OpenAI Gym Robotics
+            obs = obs["observation"]
         obs = obs.astype(np.float32).reshape((1, -1))
         obs = np.append(obs, [[step]], axis=1)  # add time step feature
         unscaled_obs.append(obs)
